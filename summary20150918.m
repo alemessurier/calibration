@@ -63,6 +63,32 @@ plot(maxDF100)
 hold on
 plot(maxDF500)
 plot(maxDF1sec)
+
+%% plot templates w/std/sem
+
+% find mean for each cell
+fns=fieldnames(template100ms(1));
+means_100ms=cell(length(fns),1);
+cmap=hsv(4);
+figure; hold on
+for i=1:4%length(fns)
+tmp=arrayfun(@(x)mean(x.(fns{i}),1),template100ms,'un',0);
+idx=~cellfun(@isempty,tmp);
+tmp=tmp(idx);
+means_100ms{i}=cat(1,tmp{:});
+
+    meanAllCells_100ms{i}=mean(means_100ms{i});
+    semAllCell_100ms{i}=std(means_100ms{i},[],1)/sqrt(size(means_100ms{i},1));
+    
+    
+    boundedline((1:length(meanAllCells_100ms{i}))/sampRateIm -0.5,meanAllCells_100ms{i},semAllCell_100ms{i},'-','cmap',cmap(i,:),'alpha');
+    
+end
+
+% find means and sem 
+
+
+    
 %%
  cellPaths={'J:\reduced\20150817\cell2\',...
     'J:\reduced\20150819\cell2\',...

@@ -12,7 +12,7 @@
     'J:\reduced\20150827\cell2\',...
     'J:\reduced\20150827\cell3\'...
     };
-
+%%
 % int(1)=ceil(0.5*sampRateIm);
 % int(2)=ceil(0.5*sampRateIm)+round(0.5*sampRateIm);
 colormap gray
@@ -106,8 +106,9 @@ for K=1:length(cellPaths)
 
     whisk=results.byWhisk.whisk;   
     
-    responseVecSp=mean(results.spikeTuning.pSpike,2);
-    semSP=std(results.spikeTuning.pSpike,[],2);
+%     responseVecSp=mean(results.spikeTuning.pSpike,2);
+%     semSP=std(results.spikeTuning.pSpike,[],2);
+    responseVecSp=results.spikeTuning.meanSpikeCount;
     responseVec_dF=cellfun(@(x)mean(mean(results.byWhisk.traceByStim.(x)(:,int(1):int(2)))),whisk,'Uni',1);
     
     RFs_spike(K,:)=responseVecSp';
@@ -188,7 +189,7 @@ for K=1:length(RFs_dF_Z)
     hold on
     plot(1:9,RFs_dF_Z(K,:),'k.-')
     plot(1:9,RFs_spike_Z(K,:),'b.-')
-    ylabel(num2str(K));
+%     ylabel(num2str(K));
 end
 tmp=gca;
     tmp.XTick=1:9;
@@ -203,13 +204,102 @@ for K=1:length(RFs_dF_Z)
     h(K)=subplot(6,2,K)
     hold on
     plot(1:9,RFs_spike(K,:),'b.-')
-    ylabel(num2str(K));
+%     ylabel(num2str(K));
 end
 tmp=gca;
     tmp.XTick=1:9;
     tmp.XTickLabel=whisk
     ylabel('Z-scored response')
     legend('dF/F','spikes')
+    linkaxes(h,'x')
+
+%% 2d tuning plots with trial-by-trial error
+
+meanSpikeRate=cell(length(cellPaths),1);
+semSpikeRate=meanSpikeRate;
+
+meanSpikeZ=meanSpikeRate;
+semSpikeZ=meanSpikeRate;
+
+meanDF_Z=meanSpikeZ;
+semDF_Z=meanDF_Z;
+
+meanDF=meanSpikeZ;
+semDF=meanDF_Z;
+
+for K=1:length(cellPaths)
+    %load in reduced data for this cell
+    load(strcat(cellPaths{K},'results.mat'));
+    
+    %find mean spike rate and sem for each whisker
+    meanSpikeRateTmp=cellfun(@(x)mean(results.spikeTuning.evoked_byTrial.(x)),whisk,'un',1);
+    meanSpikeRate{K}=meanSpikeRateTmp;
+    semSpikeRateTmp=cellfun(@(x)std(results.spikeTuning.evoked_byTrial.(x))/sqrt(length(results.spikeTuning.evoked_byTrial.(x))),whisk,'un',1);
+    semSpikeRate{K}=semSpikeRateTmp;
+    
+    %find z-scored spike rate
+    meanSpikeZTmp=(meanSpikeRateTmp-mean(meanSpikeRateTmp))/std(meanSpikeRateTmp);
+    meanSpikeZ{K}=meanSpikeZTmp;
+    
+    semSpikeZTmp=abs(semSpikeRateTmp-mean(meanSpikeRateTmp))/std(meanSpikeRateTmp);
+    semSpikeZ{K}=semSpikeZTmp;
+    
+    %find mean and sem dF/F
+    meanDFtmp=cellfun(@(x)mean(mean(results.byWhisk.traceByStim.(x)(:,int(1):int(2)))),whisk,'Uni',1);
+    semDFtmp=cellfun(@(x)std(mean(results.byWhisk.traceByStim.(x)(:,int(1):int(2)),2))/sqrt(size(results.byWhisk.traceByStim.(x),1)),whisk,'Uni',1);
+    meanDF{K}=meanDFtmp;
+    semDF{K}=semDFtmp;
+    
+    %find z-scored dF/F
+    meanDFZtmp=(meanDFtmp-mean(meanDFtmp))/std(meanDFtmp);
+    meanDF_Z{K}=meanDFZtmp;
+    
+    semDFZtmp=abs(semDFtmp-mean(meanDFtmp))/std(meanDFtmp);
+    semDF_Z{K}=semDFZtmp;
+end
+
+figure; hold on
+for K=1:length(meanSpikeRate)
+    h(K)=subplot(6,2,K);
+    hold on
+    boundedline(1:9,meanSpikeZ{K},semSpikeZ{K}','k.-',1:9,meanDF_Z{K},semDF_Z{K},'r.-','alpha')
+%     ylabel(num2str(K));
+end
+tmp=gca;
+    tmp.XTick=1:9;
+    tmp.XTickLabel=whisk
+    ylabel('Z-scored response')
+    legend('spikes','dF/F')
+    linkaxes(h,'x')
+
+    figure; hold on
+for K=1:length(meanSpikeRate)
+    h(K)=subplot(6,2,K);
+    hold on
+    boundedline(1:9,meanSpikeRate{K},semSpikeRate{K}','k.-')
+%     ylabel(num2str(K));
+    h(K).YLim=[0 6];
+end
+tmp=gca;
+    tmp.XTick=1:9;
+    tmp.XTickLabel=whisk
+    ylabel('spike rate')
+%     legend('spikes','dF/F')
+    linkaxes(h,'x')
+    
+      figure; hold on
+for K=1:length(meanSpikeRate)
+    h(K)=subplot(6,2,K);
+    hold on
+    boundedline(1:9,meanDF{K},semDF{K},'r.-')
+%     ylabel(num2str(K));
+    h(K).YLim=[-0.05 0.1];
+end
+tmp=gca;
+    tmp.XTick=1:9;
+    tmp.XTickLabel=whisk
+    ylabel('mean dF/F')
+%     legend('spikes','dF/F')
     linkaxes(h,'x')
 
 %% tuning idx
